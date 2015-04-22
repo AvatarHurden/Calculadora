@@ -1,0 +1,52 @@
+  
+ 	TO-DO
+ 
+  *Possibilitar escolher entre símbolo e nome da função
+  
+  *Opções
+    -Always Sort
+    -Manter o valor salvo ao trocar de calculadoras
+ 
+  *Colocar as calculadoras em panels
+    ?Criar uma nova classe para fazer o frame?
+  
+  *Fazer uma única janela
+    &Como criar dois sistemas de save diferentes&
+       - If statement
+  
+  *Colocar uma calculadora simples na de estatística
+  	-Sem memória
+  	-Um botão para adicionar à lista
+  	?Criar toda vez que for aberta?
+  	?Modificar o código base ou criar uma nova versão?
+  	   -Segunda opção é mais código-intensiva, mas será mais demorada no processamento?
+  	   -Primeira opção parece ser mais complexa de ser feita, mas pode permitir mais alterações no futuro
+  
+  
+ 	MAYBES
+ 	
+  *Limpar o código da calculadora padrão
+  	
+  *Posibilidade de adicionar progressões (aritmética e geométrica)
+    ?Como adicionar uma lista a uma lista?
+    ?Tentar ver como médias de um grupo podem ser feitas através de subgrupos (mesmo com o resto)?
+    
+  *Colorir os números medianos com vermelho
+    ?Como saber se estão em ordem ou não?
+    ?Colorir a fonte ou o fundo?
+  	
+  *Se houver muitas funções, possibilitar escolher entre as visíveis
+    -Duas fileiras, possivelmente
+    ?Como escolher quais aparecem?
+      -STUDY, possivelmente  	
+  
+  	
+ 	STUDY
+  	
+  *Salvar posição e qual calculadora estava aberta
+  
+  *Salvar configurações da calculadora
+  
+  *Salvar os números na estatística
+  
+  

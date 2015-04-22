@@ -1,0 +1,780 @@
+package calculadoras.engine;
+
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.JButton;
+import javax.swing.JLabel;
+
+import operations.BigOperation;
+import calculadoras.gui.PadrãoUI;
+
+public class PadrãoEngine {
+	
+	Clipboard clip = Toolkit.getDefaultToolkit().getSystemClipboard();
+	
+	// Numbers and basic types
+	
+	int digitsDisplayed = 18; // Number of digits to be displayed and addable by user
+	int digitsCalculated = 30; // Number of decimal places calculated on division and sqrt
+									 // Preferably 5 more than digitsDisplayed for more precision
+	
+	private BigDecimal memory = BigDecimal.ZERO;
+	
+	List<Polynomial> elementos = new ArrayList<Polynomial>();
+	
+	int currentPoly;
+	
+	PadrãoUI gui;
+	
+	public PadrãoEngine(PadrãoUI gui, boolean withMemory){
+		
+		this.gui = gui;
+		
+		elementos.add(new Polynomial());
+		currentPoly = 0;
+		
+		addNumpad(gui.getNumpadArray(),gui.getDecimal());
+		
+		addStandarFunctions(gui.getFunctionsArray(),gui.getReset(),gui.getLeftParentheses(),
+				gui.getRightParentheses(),gui.getBackspace());
+		
+		if (withMemory)	addMemoryFunctions(gui.getMemoryArray());
+		
+		addKeyListener();
+		
+	}
+	
+	public void resetAll(){
+		
+		elementos.clear();
+		
+		elementos.add(new Polynomial());
+		
+		memory = null;
+		
+	}
+
+	public void display(BigDecimal number, JLabel destination){
+		
+		if (destination == gui.getScreenLabel()){
+			if (number == elementos.get(currentPoly).result) 
+				elementos.get(currentPoly).resultDisplayed = true;
+			else elementos.get(currentPoly).resultDisplayed = false;
+		}
+		
+		if (number.compareTo(new BigDecimal("0.000000001"))>0 && 
+				number.compareTo(new BigDecimal("10000000000"))<0) {
+			gui.changeDisplay(destination.getName(),BigOperation.format(number,digitsDisplayed).toPlainString());
+		} else {
+			gui.changeDisplay(destination.getName(),BigOperation.format(number,digitsDisplayed).toString());
+		}
+		
+	}
+
+	public void addPolynomial(){
+		
+		elementos.add(new Polynomial());
+		currentPoly++;
+		
+		gui.getRightParentheses().setEnabled(true);
+		
+	}
+	
+	public void closePolynomial(int iterations){
+		
+		for (int i = 0; i<iterations;i++) {
+				
+			elementos.get(currentPoly).equals();
+			
+			elementos.get(currentPoly-1).tempNum = elementos.get(currentPoly).result;
+			
+			elementos.remove(currentPoly);
+			
+			currentPoly--;
+			
+			elementos.get(currentPoly).changeUsed(elementos.get(currentPoly).number);
+				
+		}
+		
+		if (currentPoly == 0) gui.getRightParentheses().setEnabled(false);
+		
+	}
+	
+	// Function to add the KeyListener (turn keyboard useful)
+	
+ 	public void addKeyListener(){
+ 		
+ 		gui.addKeyListener(new KeyListener() {
+			
+ 			public void keyPressed(KeyEvent e) {
+ 				
+ 				if ((e.getKeyCode() == KeyEvent.VK_C) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+ 					clip.setContents(new StringSelection(gui.getScreenLabel().getText()), null);
+ 					gui.changeColor(gui.getScreenLabel());
+ 				}
+ 				
+ 			}
+			public void keyReleased(KeyEvent e) {}
+		
+			public void keyTyped(KeyEvent key) {
+				
+				if ((int) key.getKeyChar()-48 <= 9 && (int) key.getKeyChar()-48 >= 0){
+					
+					int i = (int) key.getKeyChar()-48;	
+			
+					gui.getNumpadArray()[i].doClick();
+					
+				} else {
+					
+					if (key.getKeyChar() == '+'){	
+		
+						gui.getFunctionsArray()[4].doClick();
+						
+					} else
+					
+						if (key.getKeyChar() == '-'){
+						
+						gui.getFunctionsArray()[3].doClick();
+						
+					} else
+					
+					if (key.getKeyChar() == '/'){
+						
+						gui.getFunctionsArray()[1].doClick();
+						
+					} else
+					
+					if (key.getKeyChar() == '*'){
+						
+						gui.getFunctionsArray()[2].doClick();
+						
+					} else
+					
+					if (key.getKeyChar() == KeyEvent.VK_ENTER){
+						
+						gui.getEquationLabel().setText("");
+						
+						gui.getFunctionsArray()[8].doClick();
+						
+					} else
+					
+					if (key.getKeyChar() == KeyEvent.VK_PERIOD || key.getKeyChar() == KeyEvent.VK_COMMA){
+						
+						gui.getDecimal().doClick();
+						
+					} else
+					
+					if (key.getKeyChar() == 'c'){
+						
+						gui.getReset().doClick();
+						
+					} else
+						
+					if (key.getKeyChar() == '('){
+						
+						gui.getLeftParentheses().doClick();
+						
+					} else
+						
+					if (key.getKeyChar() == ')'){
+						
+						gui.getRightParentheses().doClick();
+						
+					} else
+					
+					if (key.getKeyChar() == KeyEvent.VK_BACK_SPACE){
+						
+						gui.getBackspace().doClick();				
+						
+					}
+				}
+			}
+		});
+ 	}
+
+ 	
+ 	public void addNumpad(JButton[] array, JButton decimal){
+ 		
+ 		class numpadClicked implements ActionListener{
+ 			public void actionPerformed(ActionEvent e) {
+ 				
+ 				elementos.get(currentPoly).addDigit(e.getActionCommand().toCharArray()[0]);	
+ 				
+ 				gui.getBackspace().setEnabled(true);
+ 				
+ 				gui.requestFocus();
+ 			}
+ 		}
+ 		
+ 		for (JButton i : array) {
+ 			i.addActionListener(new numpadClicked());
+ 		}
+ 		
+ 		decimal.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				
+				if (elementos.get(currentPoly).numberUsed == false) 
+					
+					gui.getScreenLabel().setText("");
+				
+				if (!gui.getScreenLabel().getText().contains(".")) 
+					
+					elementos.get(currentPoly).addDigit(".".toCharArray()[0]);
+				
+			}
+		});
+ 		
+ 	}
+ 	
+ 	public void addStandarFunctions(JButton[] array, JButton reset, 
+ 			JButton leftP, JButton rightP, JButton backspace){
+ 	
+ 		class standardFunctionClicked implements ActionListener{
+ 			public void actionPerformed(ActionEvent e) {
+			
+ 				Object src = new Object();
+ 				src = e.getActionCommand();
+			
+ 				gui.getScreenLabel().setText(gui.getScreenLabel().getText().trim());
+ 				elementos.get(currentPoly).numDigits = 0;
+			
+ 				if (elementos.get(currentPoly).numberUsed || elementos.get(currentPoly).noneUsed){
+ 					
+ 					elementos.get(currentPoly).defineNumbers(gui.getScreenLabel().getText());
+ 					
+ 				}
+			
+ 				if (src == "="){
+ 					
+ 					while (currentPoly > 0 ){
+ 						
+ 						closePolynomial(currentPoly);
+ 						
+ 					}
+ 					PadrãoEngine.this.elementos.get(currentPoly).equals();
+ 					
+ 				} else if (src == "+" || src == "-"|| src == "*"|| src == "/"){
+ 					
+ 					elementos.get(currentPoly).basic(src.toString());
+ 					
+ 				} else {
+ 					
+ 					elementos.get(currentPoly).alternative(src.toString());
+ 					
+ 				}
+			
+ 				gui.requestFocus();
+ 			}
+ 		}
+ 	
+ 		for (JButton i : array) {
+ 			i.addActionListener(new standardFunctionClicked());
+ 		}
+ 		
+ 		reset.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				
+				gui.getEquationLabel().setText("");
+				
+				elementos.get(currentPoly).resetButton();
+				
+				gui.enableButtons(true);
+			}
+		});
+ 	
+ 		leftP.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent arg0) {
+				
+				if (elementos.get(currentPoly).altUsed || elementos.get(currentPoly).numberUsed)
+					gui.removeLastTerm();
+				
+				gui.addTerm("(");
+				
+				if (elementos.get(currentPoly).numberUsed || elementos.get(currentPoly).noneUsed){
+ 					elementos.get(currentPoly).defineNumbers(gui.getScreenLabel().getText());
+ 				}
+				
+				addPolynomial();
+				
+			}
+		});
+ 		
+		rightP.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent arg0) {
+
+				gui.addTerm(")");
+				
+				if (elementos.get(currentPoly).numberUsed || elementos.get(currentPoly).noneUsed){
+ 					elementos.get(currentPoly).defineNumbers(gui.getScreenLabel().getText());
+ 				}
+			
+				closePolynomial(1);
+				
+			}
+		});
+ 		
+		backspace.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+
+				if (elementos.get(currentPoly).numberUsed == true){
+					
+					// Editing the screen
+					StringBuilder screen = new StringBuilder(gui.getScreenLabel().getText());
+					if (screen.length() > 0) screen.deleteCharAt(screen.length()-1);
+							
+					gui.getScreenLabel().setText(screen.toString());
+
+					if (elementos.get(currentPoly).numDigits >= 0) elementos.get(currentPoly).numDigits--;
+				
+					if (gui.getScreenLabel().getText().equals("")) gui.getScreenLabel().setText("0");
+					
+					// Editing the equation screen
+					
+					StringBuilder equation = new StringBuilder(gui.getEquationLabel().getText());
+					equation.deleteCharAt(equation.length()-1);
+							
+					gui.getEquationLabel().setText(equation.toString());
+				
+				}
+				
+				if (gui.getScreenLabel().getText().equals("0")) gui.getBackspace().setEnabled(false);
+				
+			}
+		});
+		
+ 	}
+		
+	public void addMemoryFunctions(JButton[] array){
+		
+		class memoryFunctionClicked implements ActionListener{
+			public void actionPerformed(ActionEvent e) {
+			
+				Object src = new Object();
+				src = e.getActionCommand();
+				
+				if (src.equals("MS")){
+				
+					if (elementos.get(currentPoly).numberUsed) 
+						elementos.get(currentPoly).defineNumbers(gui.getScreenLabel().getText());
+					
+					if (elementos.get(currentPoly).resultDisplayed) 
+						memory = elementos.get(currentPoly).result;
+						
+					 else memory = elementos.get(currentPoly).tempNum;
+					
+					elementos.get(currentPoly).numberUsed = false;
+					
+				} else if (src.equals("MC")){
+					
+					memory = BigDecimal.ZERO;
+					elementos.get(currentPoly).numberUsed = false;
+					
+				} else if (src.equals("MR")){
+					
+					if (memory != BigDecimal.ZERO){
+						
+						if (elementos.get(currentPoly).equalUsed)
+							elementos.get(currentPoly).resetButton();
+						
+						elementos.get(currentPoly).defineNumbers(memory.toString());
+						
+						if (elementos.get(currentPoly).equalUsed || elementos.get(currentPoly).noneUsed) {
+							elementos.get(currentPoly).result = elementos.get(currentPoly).tempNum;
+						}
+						
+						display(elementos.get(currentPoly).tempNum,gui.getScreenLabel());
+						elementos.get(currentPoly).changeUsed(elementos.get(currentPoly).number);
+						
+						if (elementos.get(currentPoly).numberUsed) gui.removeLastTerm();
+						gui.addTerm(BigOperation.format(memory,digitsDisplayed).toPlainString());
+						
+					}
+					
+				} else if (src.equals("M+")){
+					
+					if (elementos.get(currentPoly).numberUsed) 
+						elementos.get(currentPoly).defineNumbers(gui.getScreenLabel().getText());
+					
+					if (elementos.get(currentPoly).resultDisplayed) 
+						memory = memory.add(elementos.get(currentPoly).result);
+					else memory = memory.add(elementos.get(currentPoly).tempNum);
+					
+					elementos.get(currentPoly).numberUsed = false;
+					
+				} else if(src.equals("M-")){
+					
+					if (elementos.get(currentPoly).numberUsed) 
+						elementos.get(currentPoly).defineNumbers(gui.getScreenLabel().getText());
+					
+					if (elementos.get(currentPoly).resultDisplayed) 
+						memory = memory.subtract(elementos.get(currentPoly).result);
+					else memory = memory.subtract(elementos.get(currentPoly).tempNum);
+					
+					elementos.get(currentPoly).numberUsed = false;
+			
+				}
+				
+				display(memory,gui.getMemoryLabel());
+				
+				gui.requestFocus();
+				
+			}
+		}
+		
+		for (JButton i : array) {
+			i.addActionListener(new memoryFunctionClicked());
+		}
+	}
+
+	
+	private class Polynomial {
+		
+		final String equal = "equal";
+		final String basic = "basic";
+		final String alternative = "alternative";
+		final String number = "number";
+		final String altAfterEnteronSecondNumber = "altAfterEnteronSecondNumber";
+		
+		final BigDecimal HUNDRED = new BigDecimal("100");
+		
+		BigDecimal result, tempNum;
+
+		int numDigits; // Number of digits on screen (added by user)
+	
+		String operação;
+		boolean onSecondNumber, equalUsed, basicUsed, altUsed, numberUsed, noneUsed = true;
+		boolean altUsedAfterEnteronSecondNumber; // If special operator is used after pressing enter on second number
+		boolean resultDisplayed;
+		
+		
+		// Functions to define variables
+		
+		public void changeUsed(String thing) {
+			
+			noneUsed = false;
+			equalUsed = false;
+			basicUsed = false;
+			altUsed = false;
+			numberUsed = false;
+			altUsedAfterEnteronSecondNumber = false;
+			
+			if (thing == equal) equalUsed = true;
+			if (thing == basic) basicUsed = true;
+			if (thing == alternative) altUsed = true;
+			if (thing == number) numberUsed = true;
+			if (thing == altAfterEnteronSecondNumber) altUsedAfterEnteronSecondNumber = true;
+			if (thing == null) noneUsed = true;
+		}
+		
+		public void defineNumbers(String number){
+			
+			if (number == null){
+				tempNum = null;
+				result = null;
+			} else {
+				
+				tempNum = new BigDecimal(number);
+				resultDisplayed = false;
+				if (operação == null) {
+					result = new BigDecimal(number);
+					resultDisplayed = true;
+				}	
+			}
+		}
+		
+		public void resetButton(){
+			
+			resetInput();
+			result = BigDecimal.ZERO;
+			tempNum = BigDecimal.ZERO;
+			operação = null;
+			onSecondNumber = false;
+			changeUsed(null);
+			gui.requestFocus();
+			
+		}
+	
+		
+		// Functions to modify display
+		
+		public void resetInput(){
+			
+			gui.changeDisplay(gui.screen,"0");
+			numDigits = 0;
+			
+		}
+			
+		public void addDigit(char digit){
+			
+			if ((basicUsed || altUsed) && operação != null) onSecondNumber = true;
+			if (equalUsed) operação = null;
+			
+			// Edit the equationLabel
+			
+			if (altUsed) gui.removeLastTerm();
+			
+			if (!gui.getLastTerm().equals("0") || digit != '0')
+				gui.addTerm(String.valueOf(digit));
+			 
+			//
+			
+			if (numDigits < digitsDisplayed){
+				
+				if (digit != '0'){
+					
+					if (gui.getScreenLabel().getText().startsWith("0")) {
+							
+						StringBuilder screen = new StringBuilder(gui.getScreenLabel().getText());
+						if (screen.length() > 0) screen.deleteCharAt(screen.length()-1);
+								
+						gui.getScreenLabel().setText(screen.toString());
+						
+					}
+					
+				} else if (gui.getScreenLabel().getText().equals("0")) {
+					
+					StringBuilder screen = new StringBuilder(gui.getScreenLabel().getText());
+					if (screen.length() > 0) screen.deleteCharAt(screen.length()-1);
+						
+					gui.getScreenLabel().setText(screen.toString());
+				}
+				
+				
+				
+				if (numberUsed) {
+					gui.changeDisplay(gui.screen, gui.getScreenLabel().getText()+digit);
+					numDigits++;
+				}
+				else if (digit == ".".toCharArray()[0]) gui.changeDisplay(gui.screen, "0"+digit);
+				else {
+					resetInput();
+					gui.changeDisplay(gui.screen, String.valueOf(digit));
+				}
+			}
+			
+			changeUsed(number);
+			
+		}
+			
+		// Functions to modify result and tempNum
+		
+		public void equals(){
+			
+			try {
+			
+				if (operação != null){
+				
+					if (operação == "+") result = result.add(tempNum);
+					else if (operação == "-") result = result.subtract(tempNum);
+					else if (operação == "*") result = result.multiply(tempNum);
+					else if (operação == "/") result = result.divide(tempNum,digitsCalculated,
+																		BigDecimal.ROUND_HALF_EVEN);
+				}	
+				
+				display(result,gui.getScreenLabel());
+				resultDisplayed = true;
+				changeUsed(equal);
+				
+			}catch (ArithmeticException exc) {
+				
+				gui.getScreenLabel().setText("Result undefined");
+				
+				gui.enableButtons(false);
+			}
+		}
+		
+		public void basic(String operation){
+					
+			// Code for the equationLabel
+			
+			System.out.println(gui.getLastTerm());
+			
+			if (numberUsed) gui.removeLastTerm();
+			
+			if (basicUsed) {
+				
+				gui.removeLastTerm();
+				
+				StringBuilder equation = new StringBuilder(gui.getEquationLabel().getText());
+				
+				equation.deleteCharAt(equation.length()-1);
+				
+				gui.getEquationLabel().setText(equation.toString());
+				
+			}
+					
+			if (numberUsed) gui.addTerm(BigOperation.format(tempNum,digitsDisplayed).toPlainString());
+						
+			else if (equalUsed || noneUsed) 
+				gui.addTerm(BigOperation.format(result, digitsDisplayed).toPlainString());
+						
+			gui.addTerm(" "+operation+" ");
+			
+			
+			if (equalUsed || altUsedAfterEnteronSecondNumber) {
+				onSecondNumber = false;
+				tempNum = result;
+			}
+			
+			if (onSecondNumber && basicUsed == false) {
+				equals();
+			}
+			
+			operação = operation;
+			changeUsed(basic);
+		
+		}
+		
+		public void alternative(String operation){
+			
+			try {
+	
+				if (basicUsed) onSecondNumber = true;
+				
+				BigDecimal operand = null; // Being operated
+				BigDecimal operator = null; // Operating
+				
+				if (onSecondNumber && equalUsed == false){
+					operand = tempNum;
+					operator = tempNum;
+				} else if (equalUsed && onSecondNumber){
+					operand = result;
+					operator = result;
+				} else {
+					operand = tempNum;
+					operator = result;
+				}
+				
+				if (operation == "sqrtIcon") operand = BigOperation.sqrt(operator, digitsCalculated);
+				else if (operation == "1/x") operand = BigDecimal.ONE.divide(
+												operator,digitsCalculated,BigDecimal.ROUND_HALF_EVEN);
+																					
+				else if (operation == "+-") operand = operator.negate();
+				else if (operation == "%") {
+					
+					if (operação == "+"||operação == "-") {
+						operand = result.multiply(operator).divide(HUNDRED, digitsCalculated,
+																		BigDecimal.ROUND_HALF_EVEN);
+					} else operand = operator.divide(HUNDRED, digitsCalculated, BigDecimal.ROUND_HALF_EVEN);
+					
+				}
+				
+				if (onSecondNumber && equalUsed == false)	tempNum = operand;
+				else if (equalUsed && onSecondNumber) {
+					result = operand;
+					changeUsed(altAfterEnteronSecondNumber);
+				}
+				else if (operação == null || (equalUsed && onSecondNumber == false)){ 
+					result = operand;
+					tempNum = operand;
+				} else 	tempNum = operand;
+				
+				display(operand,gui.getScreenLabel());
+				
+				
+				// Edit the equation label
+								
+				gui.removeLastTerm();
+				
+				if (operation == "sqrtIcon") 
+					
+					gui.getEquationLabel().setText(gui.getEquationLabel().getText()+
+							"sqrt("+operator+")");
+				
+				else if (operation == "1/x") 
+					
+					gui.getEquationLabel().setText(gui.getEquationLabel().getText()+
+							"reciproc("+operator+")");
+				
+				else if (operation == "+-") 
+					
+					if (operand.signum() == -1) {
+						
+						gui.removeLastTerm();
+						
+						gui.getEquationLabel().setText(gui.getEquationLabel().getText()+"(-"+operator+")");
+		
+					} else {
+						
+						gui.removeLastTerm();
+						
+						StringBuilder positive = new StringBuilder(operator.toString());
+						positive.deleteCharAt(0);
+						
+						gui.getEquationLabel().setText(gui.getEquationLabel().getText()+positive.toString());
+					}
+						
+				else if (operation == "%") {
+				
+					gui.getEquationLabel().setText(gui.getEquationLabel().getText()+
+							BigOperation.format(operand, digitsDisplayed));
+					
+				}
+				
+				changeUsed(alternative);
+				
+			} catch (ArithmeticException exc) {
+				
+				gui.getScreenLabel().setText("Result undefined");
+				
+				gui.enableButtons(false);
+			} catch (IllegalArgumentException e) {
+				
+				gui.getScreenLabel().setText("Not a real number");
+				
+				gui.enableButtons(false);
+			}
+		}
+	
+	}
+		
+	// Set config stats on startup
+	
+	public void setDigitsShown(int i){
+		
+		digitsDisplayed = i-1; // -1 because testing told me so (see "being a noob at programming")
+		
+	}
+
+	public void setDigitsCalculated(int i){
+		
+		digitsCalculated = i;
+		
+	}
+	
+	// Getters and Setters
+	
+ 	public void setMemory(BigDecimal memory) {
+		this.memory = memory;
+		display(memory,gui.getMemoryLabel());
+	}
+ 	
+	public BigDecimal getMemory() {
+		return memory;
+	}
+	
+	public BigDecimal getDisplayedNumber(){
+		
+		if (elementos.get(currentPoly).numberUsed || elementos.get(currentPoly).noneUsed){
+			elementos.get(currentPoly).defineNumbers(gui.getScreenLabel().getText());
+			}
+		
+		elementos.get(currentPoly).changeUsed(elementos.get(currentPoly).equal);
+		
+		if (elementos.get(currentPoly).resultDisplayed) return elementos.get(currentPoly).result;
+		else return elementos.get(currentPoly).tempNum;
+		
+	}
+}
